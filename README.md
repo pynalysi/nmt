@@ -41,64 +41,42 @@ _如果您的研究使用此代码库，请引用
 -   [参考](#references)
 -   [BibTex](#bibtex)
 
-# Introduction
+# 介绍
 
-Sequence-to-sequence (seq2seq) models
+序列到序列 (seq2seq) 模型
 ([Sutskever et al., 2014](https://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf),
-[Cho et al., 2014](http://emnlp2014.org/papers/pdf/EMNLP2014179.pdf)) have
-enjoyed great success in a variety of tasks such as machine translation, speech
-recognition, and text summarization. This tutorial gives readers a full
-understanding of seq2seq models and shows how to build a competitive seq2seq
-model from scratch. We focus on the task of Neural Machine Translation (NMT)
-which was the very first testbed for seq2seq models with
-wild
-[success](https://research.googleblog.com/2016/09/a-neural-network-for-machine.html). The
-included code is lightweight, high-quality, production-ready, and incorporated
-with the latest research ideas. We achieve this goal by:
+[Cho et al., 2014](http://emnlp2014.org/papers/pdf/EMNLP2014179.pdf)) 在各种任务中取得了巨大成功，例如机器翻译，语音识别和文本摘要。本教程让读者全面了解seq2seq模型，并展示如何从头开始构建具有竞争力的seq2seq模型。我们专注于神经机器翻译（NMT）的任务，这是seq2seq模型的第一个测试平台，取得了巨大的
+[成功](https://research.googleblog.com/2016/09/a-neural-network-for-machine.html)。所包含的代码是轻量级，高质量，生产就绪，并结合了最新的研究思路。我们实现了这个目标：
 
-1.  Using the recent decoder / attention
-    wrapper
-    [API](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/seq2seq/python/ops),
-    TensorFlow 1.2 data iterator
-2.  Incorporating our strong expertise in building recurrent and seq2seq models
-3.  Providing tips and tricks for building the very best NMT models and replicating
-    [Google’s NMT (GNMT) system](https://research.google.com/pubs/pub45610.html).
+1.  使用最近的解码器/注意包装器
+    [API](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/seq2seq/python/ops)，TensorFlow 1.2数据迭代器
+2.  结合我们在构建recurrent和seq2seq模型方面的强大专业知识
+3.  提供建立最佳NMT模型和复制
+    [Google’s NMT (GNMT) system](https://research.google.com/pubs/pub45610.html) 的提示和技巧 。
 
-We believe that it is important to provide benchmarks that people can easily
-replicate. As a result, we have provided full experimental results and
-pretrained our models on the following publicly available datasets:
+我们认为提供人们可以轻松复制的基准非常重要。因此，我们提供了完整的实验结果，并在以下公开数据集上预先训练了我们的模型：
 
-1.  _Small-scale_: English-Vietnamese parallel corpus of TED talks (133K sentence
+1.  _小规模_: 英语 - 越南语平行语料库TED讲话 (133K sentence
     pairs) provided by
     the
     [IWSLT Evaluation Campaign](https://sites.google.com/site/iwsltevaluation2015/).
-2.  _Large-scale_: German-English parallel corpus (4.5M sentence pairs) provided
+2.  _大规模_: 德语 - 英语平行语料库 (4.5M sentence pairs) provided
     by the [WMT Evaluation Campaign](http://www.statmt.org/wmt16/translation-task.html).
 
-We first build up some basic knowledge about seq2seq models for NMT, explaining
-how to build and train a vanilla NMT model. The second part will go into details
-of building a competitive NMT model with attention mechanism. We then discuss
-tips and tricks to build the best possible NMT models (both in speed and
-translation quality) such as TensorFlow best practices (batching, bucketing),
-bidirectional RNNs, beam search, as well as scaling up to multiple GPUs using GNMT attention.
+我们首先建立一些关于NMT的seq2seq模型的基本知识，解释如何构建和训练一个vanilla NMT模型。第二部分将详细介绍建立具有关注机制的竞争性NMT模型。然后，我们讨论了构建最佳NMT模型（速度和翻译质量）的技巧和窍门，例如TensorFlow最佳实践（批处理，分组），双向RNN，波束搜索，以及使用GNMT注意扩展到多个GPU。
 
-# Basic
+# 基本
 
-## Background on Neural Machine Translation
+## 神经机器翻译的背景
 
-Back in the old days, traditional phrase-based translation systems performed
-their task by breaking up source sentences into multiple chunks and then
-translated them phrase-by-phrase. This led to disfluency in the translation
-outputs and was not quite like how we, humans, translate. We read the entire
-source sentence, understand its meaning, and then produce a translation. Neural
-Machine Translation (NMT) mimics that!
+回到过去，传统的基于短语的翻译系统通过将源句分成多个块然后逐个词翻译来完成它们的任务。这导致了翻译输出的不流畅，并不像我们人类翻译的那样。我们阅读整个源句，理解其含义，然后产生翻译。神经机器翻译（NMT）模仿了！
+
+
 
 <p align="center">
 <img width="80%" src="nmt/g3doc/img/encdec.jpg" />
 <br>
-Figure 1. <b>Encoder-decoder architecture</b> – example of a general approach for
-NMT. An encoder converts a source sentence into a "meaning" vector which is
-passed through a <i>decoder</i> to produce a translation.
+图1. <b>编码器 - 解码器架构</b> – NMT的一般方法示例。编码器将源句子转换为“含义”向量，该向量通过解码器以产生翻译。
 </p>
 
 Specifically, an NMT system first reads the source sentence using an _encoder_
